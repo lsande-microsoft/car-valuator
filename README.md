@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Car Valuator
 
-## Getting Started
+An MVP web app that gives instant market price estimates for any vehicle, built with Next.js (App Router) + TypeScript + Tailwind CSS.
 
-First, run the development server:
+---
+
+## Setup
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) (or the port shown in terminal).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## How Valuation Works
 
-## Learn More
+This MVP uses a **mock provider** — no external APIs or scraping.
 
-To learn more about Next.js, take a look at the following resources:
+1. **Mock comps** (`lib/providers/mockProvider.ts`): Generates 5–7 synthetic comparable listings seeded deterministically from the vehicle inputs (make, model, year, mileage). Prices are based on a simple depreciation model.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. **Core logic** (`lib/valuation.ts`):
+   - Averages the comp prices as a mid estimate.
+   - Applies heuristic adjustments: high mileage and older age pull the price down.
+   - Confidence is set by condition (excellent → 90%, poor → 60%).
+   - Spread (low/high range) widens as confidence decreases: roughly ±8–15%.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. **Validation** (`lib/validation.ts`): Zod schema validates all inputs server-side and returns structured 400 errors on failure.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+app/
+  page.tsx               # UI: form + results
+  api/valuate/route.ts   # POST /api/valuate — server handler
+  layout.tsx
+lib/
+  validation.ts          # Zod schemas for request & response
+  valuation.ts           # Computes priceLow/Mid/High + confidence
+  providers/
+    mockProvider.ts      # Returns mock comparable listings
+```
+
+---
+
+## Adding Real Providers
+
+To replace the mock with real data:
+
+1. Create `lib/providers/yourProvider.ts` exporting a `getComps(req: ValuateRequest): Promise<Comp[]>` function.
+2. Call it from `lib/valuation.ts` instead of `getMockComps`.
+3. Add any API keys to `.env.local` (see `.env.example`).
+
+Good real-data sources to consider: Marketcheck API, DataOne, or scraping CarGurus/AutoTrader with appropriate terms compliance.
+
+---
+
+## Deploy to Vercel
+
+1. Push the repo to GitHub.
+2. Go to [vercel.com/new](https://vercel.com/new) and import the repo.
+3. Add any environment variables from `.env.example` in the Vercel dashboard.
+4. Click **Deploy** — Vercel auto-detects Next.js.
+
+Or via CLI:
+
+```bash
+npm i -g vercel
+vercel
+```
+
+---
+
+## Environment Variables
+
+Copy `.env.example` to `.env.local` and fill in values as you add real providers.
+
+```bash
+cp .env.example .env.local
+```
