@@ -29,6 +29,7 @@ export const compSchema = z.object({
   location: z.string(),
   source: z.string(),
   url: z.string(),
+  linkType: z.enum(["search", "listing"]).default("search"),
   postedDate: z.string().optional(),
 });
 
